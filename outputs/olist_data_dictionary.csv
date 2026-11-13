@@ -1,0 +1,55 @@
+column_name,data_type,description,source,transformation_or_derivation,model_role,notes_or_concerns
+order_id,str,Unique order identifier,orders,none,key,
+customer_id,str,Customer record attached to this order,orders,none,identifier,One per order. Not a person.
+order_status,str,Final status of the order at data snapshot,orders,strip + lowercase,post_purchase,Defines is_canceled. Do not use as a feature.
+order_purchase_timestamp,datetime64[us],When the customer placed the order,orders,none,reference,Prediction time anchor.
+order_approved_at,datetime64[us],When payment was approved,orders,none,post_purchase,0.16% missing. Happens after checkout.
+order_delivered_carrier_date,datetime64[us],When the carrier received the package,orders,none,post_purchase,"350 earlier than approval, flagged."
+order_delivered_customer_date,datetime64[us],When the customer received the package,orders,none,post_purchase,Defines delivered_late. Missing for undelivered orders by design.
+order_estimated_delivery_date,datetime64[us],Delivery date promised at checkout,orders,none,predictor_purchase_time,"Stored at midnight, compare at date level."
+flag_carrier_before_approval,int64,1 if carrier handoff precedes approval,orders,carrier date < approval date,audit_flag,350 rows. Kept.
+flag_delivered_before_carrier,int64,1 if customer delivery precedes carrier handoff,orders,delivery date < carrier date,audit_flag,11 rows. Unexplained. Kept.
+customer_unique_id,str,Person-level customer identifier,customers,none,identifier,"Use as a grouping variable for splits, never as a feature."
+customer_zip_code_prefix,int64,Customer zip prefix (integer),customers,none,predictor_purchase_time,Leading zeros lost in int form.
+customer_city,str,Customer city,customers,strip + lowercase,predictor_purchase_time,High cardinality.
+customer_state,str,Customer state code,customers,strip + uppercase,predictor_purchase_time,
+customer_lat,float64,Customer zip prefix centroid latitude,geolocation_zip_prefix,join on zip prefix; outside Brazil set to missing,predictor_purchase_time,Missing when prefix has no geo row or a bad coordinate.
+customer_lng,float64,Customer zip prefix centroid longitude,geolocation_zip_prefix,join on zip prefix; outside Brazil set to missing,predictor_purchase_time,
+customer_geo_source_records,float64,Records summarized into the geo centroid,geolocation_zip_prefix,join on zip prefix,audit_flag,Proxy for centroid reliability.
+customer_zip5,str,"Customer zip prefix, zero padded",customers,astype(str).zfill(5),identifier,For external cross-reference only.
+order_item_count,float64,Number of item rows in the order,order_items,count of order_item_id per order,predictor_purchase_time,Missing for 209 orders with no items.
+product_count,float64,Distinct products in the order,order_items,nunique product_id,predictor_purchase_time,
+seller_count,float64,Distinct sellers in the order,order_items,nunique seller_id,predictor_purchase_time,More than one seller means split shipments.
+category_count,float64,Distinct English categories in the order,order_items + products + translations,nunique category,predictor_purchase_time,
+seller_state_count,float64,Distinct seller states in the order,order_items + sellers,nunique seller_state,predictor_purchase_time,
+item_price_total,float64,Sum of item prices,order_items,sum price per order,predictor_purchase_time,
+freight_total,float64,Sum of freight charges,order_items,sum freight_value per order,predictor_purchase_time,
+product_weight_total_g,float64,Total product weight in grams,order_items + products,sum product_weight_g,predictor_purchase_time,Sum skips missing weights.
+product_weight_mean_g,float64,Mean product weight in grams,order_items + products,mean product_weight_g,predictor_purchase_time,
+product_volume_mean_cm3,float64,Mean product volume in cm3,order_items + products,"length*height*width, mean per order",predictor_purchase_time,
+distance_km_mean,float64,Mean seller-to-customer distance in km,order_items + sellers + geo,haversine on zip prefix centroids,predictor_purchase_time,Missing when either end lacks coordinates.
+distance_km_max,float64,Max seller-to-customer distance in km,order_items + sellers + geo,haversine on zip prefix centroids,predictor_purchase_time,
+any_cross_state_seller,float64,1 if any item ships from a different state,order_items + sellers + customers,"seller_state != customer_state, max per order",predictor_purchase_time,
+freight_share,float64,Freight as a share of price plus freight,order_items,freight_total / (item_price_total + freight_total),predictor_purchase_time,
+primary_category,str,English category of the highest-priced item,order_items + products + translations,item with max price per order,predictor_purchase_time,Untranslated kept in Portuguese; missing is unknown.
+primary_seller_state,str,State of the seller of the highest-priced item,order_items + sellers,item with max price per order,predictor_purchase_time,
+payment_record_count,int64,Number of payment rows,order_payments,count per order,predictor_purchase_time,
+payment_total,float64,Sum of payment values,order_payments,sum payment_value per order,predictor_purchase_time,Does not always equal price plus freight (see SQL q3).
+payment_installments_max,int64,Highest installment count used,order_payments,max per order,predictor_purchase_time,
+payment_type_count,int64,Distinct payment types used,order_payments,nunique payment_type,predictor_purchase_time,
+used_voucher,int64,1 if any payment row is a voucher,order_payments,any payment_type == voucher,predictor_purchase_time,
+any_nonpositive_payment,int64,1 if any payment value is 0 or less,order_payments,max of flag per order,audit_flag,2 rows in raw data. Unexplained.
+primary_payment_type,str,Payment type of payment_sequential 1,order_payments,filter sequential == 1,predictor_purchase_time,
+review_record_count,float64,Number of review rows for the order,order_reviews,count per order,post_purchase,Missing for orders with no review.
+review_score_mean,float64,Mean review score,order_reviews,mean per order,post_purchase,Do not use as a predictor of high_review_score.
+review_score_min,float64,Lowest review score,order_reviews,min per order,post_purchase,
+review_comment_present,float64,1 if any review has comment text,order_reviews,max of notna(comment message),post_purchase,
+review_score_last,float64,Score of the latest review by answer timestamp,order_reviews,last by review_answer_timestamp,post_purchase,Defines high_review_score.
+purchase_month,int32,Month of purchase,orders,dt.month,predictor_purchase_time,
+purchase_dayofweek,int32,Day of week of purchase (0 = Monday),orders,dt.dayofweek,predictor_purchase_time,
+purchase_hour,int32,Hour of purchase,orders,dt.hour,predictor_purchase_time,
+promised_delivery_days,int64,Calendar days from purchase to promised date,orders,estimated date - purchase date,predictor_purchase_time,
+delivery_days,float64,Calendar days from purchase to actual delivery,orders,delivered date - purchase date,post_purchase,Direct leak for delivered_late.
+delivered_late,Int64,1 if delivered after the promised date,orders,date-level comparison; delivered orders only,target,Missing for undelivered orders.
+high_review_score,Int64,1 if last review score is 4 or higher,order_reviews,review_score_last >= 4,target,Missing where no review exists.
+is_canceled,Int64,"1 if canceled, 0 if delivered",orders,status mapping; other statuses missing,target,Unavailable and in-flight statuses left missing.

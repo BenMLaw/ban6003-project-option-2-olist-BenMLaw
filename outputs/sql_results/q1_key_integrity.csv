@@ -1,0 +1,5 @@
+tbl,n_rows,n_distinct_order_id
+abt,25000,25000
+raw_orders,25000,25000
+raw_items,28343,24791
+raw_payments,26154,25000

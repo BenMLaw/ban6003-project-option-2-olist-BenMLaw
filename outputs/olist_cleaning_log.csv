@@ -1,0 +1,21 @@
+table,column,action,values_changed
+customers,customer_city,strip + lower,0
+customers,customer_state,strip + upper,0
+sellers,seller_city,strip + lower,0
+sellers,seller_state,strip + upper,0
+geolocation_zip_prefix,geolocation_city,strip + lower,0
+geolocation_zip_prefix,geolocation_state,strip + upper,0
+orders,order_status,strip + lower,0
+payments,payment_type,strip + lower,0
+products,product_category_name,strip + lower,0
+translations,product_category_name,strip + lower,0
+translations,product_category_name_english,strip + lower,0
+customers,customer_zip5,zero-padded 5 char string added,5995
+sellers,seller_zip5,zero-padded 5 char string added,747
+geolocation_zip_prefix,geolocation_zip5,zero-padded 5 char string added,2768
+products,product_category_name_english,untranslated kept in Portuguese,4
+products,product_category_name_english,missing category labeled unknown,230
+geolocation_zip_prefix,geolocation_lat/lng,outside Brazil bounding box set to missing,1
+orders,flag_carrier_before_approval,flag only,350
+orders,flag_delivered_before_carrier,flag only,11
+payments,flag_nonpositive_payment,flag only,2

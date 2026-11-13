@@ -1,0 +1,11 @@
+step,rows_before,rows_after,key_checked,duplicate_keys,rows_as_expected
+customers + geo,25000,25000,customer_id,0,True
+sellers + geo,2234,2234,seller_id,0,True
+items + products,28343,28343,order_id + order_item_id,0,True
+items + sellers,28343,28343,order_id + order_item_id,0,True
+items + customer location (via order),28343,28343,order_id + order_item_id,0,True
+orders (start),25000,25000,order_id,0,True
++ customers/geo (one_to_one on customer_id),25000,25000,order_id,0,True
++ item_summary (one_to_one on order_id),25000,25000,order_id,0,True
++ payment_summary (one_to_one on order_id),25000,25000,order_id,0,True
++ review_summary (one_to_one on order_id),25000,25000,order_id,0,True
